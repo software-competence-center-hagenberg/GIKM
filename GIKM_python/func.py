@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_distances
+from scipy.linalg import sqrtm, eig
 
 def divide_data_into_non_iid_label_screw(labels_trn, n_clients, n_classes_per_client):
     labels = np.unique(labels_trn)
@@ -114,7 +115,7 @@ def parallelAutoencoders(y_data, subspace_dim, Nb):
     S = round(N / Nb)  # Determine number of clusters
 
     if S > 1:
-        cluster_labels = k_means_clustering(y_data, S)
+        cluster_labels = k_means_clustering(y_data.T, S)
         labels_indices_less = []
 
         # Find clusters with fewer than 2 samples and filter out
@@ -136,7 +137,7 @@ def parallelAutoencoders(y_data, subspace_dim, Nb):
         # Sequential training of autoencoders
         for i in range(S):
             # Extract data for the current cluster
-            cluster_data = y_data[:, cluster_labels == i]
+            cluster_data = y_data[ :,cluster_labels == i]
             # Train autoencoder on the cluster data
             AE = Autoencoder(cluster_data, subspace_dim)
             # Append the trained autoencoder to the list
@@ -158,21 +159,21 @@ def k_means_clustering(data, no_of_clusters):
 
 def dimReduce_fast(y_data, n):
     pca = PCA(n_components=n)
-    y_data_n_subspace = pca.fit_transform(y_data.T).T
-    PC = pca.components_
-    
-    return y_data_n_subspace, PC
+    y_data_n_subspace = pca.fit_transform(y_data.T)  # Fit and transform the data (transpose y_data to shape (N, m))
+    PC = pca.components_.T  # Get the principal components (transpose to match original shape)
+    return y_data_n_subspace.T, PC
 
 def dimReduce_slow(y_data,n):
-    y_data = y_data.T
     N = y_data.shape[1]
     data = y_data - np.mean(y_data, axis=1, keepdims=True)
     covariance = (1/(N-1)) * np.dot(data, data.T)
     #DF = pd.DataFrame(covariance)
     # save the dataframe as a csv file
     #DF.to_csv("covariance_py_dimreduce.csv")
-    eig_val, PC = np.linalg.eig(covariance.T) # numpy wrong answers
-    #eig_val, PC = scipy.linalg.eig(covariance) # recheck all of this code
+    #eig_val, PC = np.linalg.eig(covariance) # numpy wrong answers
+    eig_val, PC = eig(covariance) # recheck all of this code
+    eig_val = eig_val.real
+    PC = PC.real
     neig_val = -eig_val
     sorted_indices = np.argsort(neig_val)
     neg_eig_val = neig_val[sorted_indices]
@@ -181,9 +182,12 @@ def dimReduce_slow(y_data,n):
     PC = PC[:, sorted_indices[:n]]
     y_data_n_subspace = np.dot(PC.T, y_data)
     return y_data_n_subspace, PC
+
+
+
 def KxxMatrix(x_matrix, weights_matrix, kerneltype):
     # x_matrix is n x N
-    x_matrix = x_matrix.T
+    #x_matrix = x_matrix.T
     # weights_matrix is n x 1
 
     if kerneltype.lower() == 'gaussian':
@@ -237,13 +241,14 @@ def kernel_regularized_least_squares(KernelMatrix, LabelsMatrix):
 def Autoencoder(y_data, subspace_dim):
     # Reduce the dimensionality of y_data
     AE = {}
-    AE['y_data_n_subspace'], AE['PC'] = dimReduce_fast(y_data, subspace_dim)
+    AE['y_data_n_subspace'], AE['PC'] = dimReduce_slow(y_data, subspace_dim)
     
     # Ensure subspace has a significant spread
     while np.min(np.max(AE['y_data_n_subspace'], axis=1) - np.min(AE['y_data_n_subspace'], axis=1)) < 1e-3:
         subspace_dim -= 1
-        AE['y_data_n_subspace'], AE['PC'] = dimReduce_fast(y_data, subspace_dim)
-        print(f'reduced subspace dim = {subspace_dim}.')
+        #print(f"shape before dim reduce: {np.shape(AE['y_data_n_subspace'])}")
+        AE['y_data_n_subspace'], AE['PC'] = dimReduce_slow(y_data, subspace_dim)
+        #print(f"reduced subspace dim = {subspace_dim}. and to shape: {np.shape(AE['y_data_n_subspace'])}")
 
     # Compute weights matrix
     weights_matrix = np.linalg.inv(np.cov(AE['y_data_n_subspace']))
@@ -373,7 +378,7 @@ def combineMultipleClassifiers(distance_arr, labels_arr_arr):
     - labels_arr (numpy.ndarray): Array of labels corresponding to the minimum distance for each data point.
     """
     Q = len(distance_arr)  # Number of classifiers
-    N = distance_arr[0].shape[1]  # Number of data points
+    N = distance_arr[0].shape[0]  # Number of data points
 
     min_distance = np.full(N, np.inf)  # Initialize with infinity
     labels_arr = np.zeros(N, dtype=int)  # Initialize label array

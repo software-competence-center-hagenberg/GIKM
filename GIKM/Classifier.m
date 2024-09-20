@@ -5,7 +5,8 @@ CLF.AE_arr_arr = cell(1,C);
 max_modeling_error = 0;
 for i = 1:C
     fprintf('Building an autoencoder for class = %s...\n',num2str(CLF.labels(i)));
-    CLF.AE_arr_arr{i} = parallelAutoencoders(y_data(:,label_data==CLF.labels(i)),subspace_dim,Nb);
+    class_data = y_data(:,label_data==CLF.labels(i));
+    CLF.AE_arr_arr{i} = parallelAutoencoders(class_data,subspace_dim,Nb);
     for j = 1:numel(CLF.AE_arr_arr{i})
         max_modeling_error = max(max_modeling_error,CLF.AE_arr_arr{i}{j}.modeling_error);
     end
