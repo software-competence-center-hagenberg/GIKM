@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import pairwise_distances
 import os
 import scipy
 import pandas as pd
-from func import Classifier, predictionClassifier, combineMultipleClassifiers
+from optimisedfunc import Classifier, predictionClassifier, combineMultipleClassifiers
 
 
 def run_experiments_mnist():
@@ -131,7 +131,7 @@ def run_experiments_mnist():
     df = pd.DataFrame(data)
 
     # Save the DataFrame to a CSV file
-    csv_filename = "./results/accuracy_metrics_mnist_compare.csv"
+    csv_filename = "./results/accuracy_metrics_mnist_optimized_otherKxx.csv"
     df.to_csv(csv_filename, index=False)
 
 

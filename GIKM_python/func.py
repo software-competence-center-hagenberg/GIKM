@@ -4,6 +4,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import pairwise_distances
 from scipy.linalg import sqrtm, eig
 
+
 def divide_data_into_non_iid_label_screw(labels_trn, n_clients, n_classes_per_client):
     labels = np.unique(labels_trn)
     C = len(labels)
@@ -55,100 +56,6 @@ def divide_data_into_groups(N, nGroup, random_flag):
     
     return group
 
-def Classifier(y_data, label_data, subspace_dim, Nb):
-    """
-    Build a classifier using autoencoders for each class of the input data.
-
-    Parameters:
-    - y_data (numpy.ndarray): The input data (features).
-    - label_data (numpy.ndarray): The labels corresponding to the input data.
-    - subspace_dim (int): The subspace dimension for the autoencoders.
-    - Nb (int): Parameter determining the number of clusters/subsets.
-
-    Returns:
-    - CLF (dict): A dictionary representing the classifier containing:
-      - 'labels': Unique labels of the input data.
-      - 'AE_arr_arr': List of lists, where each sublist contains autoencoders trained on a specific class.
-      - 'max_modeling_error': Maximum modeling error encountered across all autoencoders.
-    """
-    CLF = {}
-    CLF['labels'] = np.unique(label_data)
-    C = len(CLF['labels'])
-    CLF['AE_arr_arr'] = [None] * C
-    max_modeling_error = 0
-
-    for i in range(C):
-        label = CLF['labels'][i]
-        print(f'Building an autoencoder for class = {label}...')
-        
-        # Extract data for the current class
-        class_data = y_data[:, label_data == label]
-        # Train autoencoders for the current class
-        CLF['AE_arr_arr'][i] = parallelAutoencoders(class_data, subspace_dim, Nb)
-        
-        # Determine the maximum modeling error for the autoencoders
-        for ae in CLF['AE_arr_arr'][i]:
-            max_modeling_error = max(max_modeling_error, ae['modeling_error'])
-        
-        print(f'maximum modeling error for class {label} = {max_modeling_error}.')
-
-    CLF['max_modeling_error'] = max_modeling_error
-    print(f'overall maximum modeling error = {max_modeling_error}.')
-
-    return CLF
-
-
-def parallelAutoencoders(y_data, subspace_dim, Nb):
-    """
-    Train multiple autoencoders sequentially on clustered subsets of the input data.
-    
-    Parameters:
-    - y_data (numpy.ndarray): The input data.
-    - subspace_dim (int): The subspace dimension for the autoencoder.
-    - Nb (int): A parameter to determine the number of clusters (subsets).
-    
-    Returns:
-    - AE_arr (list): A list containing trained autoencoders.
-    """
-    AE_arr = []
-    N = y_data.shape[1]  # Number of samples
-    S = round(N / Nb)  # Determine number of clusters
-
-    if S > 1:
-        cluster_labels = k_means_clustering(y_data.T, S)
-        labels_indices_less = []
-
-        # Find clusters with fewer than 2 samples and filter out
-        for i in range(S):
-            ind = np.where(cluster_labels == i)[0]
-            if len(ind) < 2:
-                labels_indices_less.append(i)
-        
-        while labels_indices_less:
-            S -= 1
-            cluster_labels = k_means_clustering(y_data, S)
-            labels_indices_less = []
-
-            for i in range(S):
-                ind = np.where(cluster_labels == i)[0]
-                if len(ind) < 30:
-                    labels_indices_less.append(i)
-        
-        # Sequential training of autoencoders
-        for i in range(S):
-            # Extract data for the current cluster
-            cluster_data = y_data[ :,cluster_labels == i]
-            # Train autoencoder on the cluster data
-            AE = Autoencoder(cluster_data, subspace_dim)
-            # Append the trained autoencoder to the list
-            AE_arr.append(AE)
-
-    else:
-        # Train a single autoencoder if only one cluster is needed
-        AE = Autoencoder(y_data, subspace_dim)
-        AE_arr.append(AE)
-    
-    return AE_arr
 
 
 def k_means_clustering(data, no_of_clusters):
@@ -167,11 +74,7 @@ def dimReduce_slow(y_data,n):
     N = y_data.shape[1]
     data = y_data - np.mean(y_data, axis=1, keepdims=True)
     covariance = (1/(N-1)) * np.dot(data, data.T)
-    #DF = pd.DataFrame(covariance)
-    # save the dataframe as a csv file
-    #DF.to_csv("covariance_py_dimreduce.csv")
-    #eig_val, PC = np.linalg.eig(covariance) # numpy wrong answers
-    eig_val, PC = eig(covariance) # recheck all of this code
+    eig_val, PC = eig(covariance) 
     eig_val = eig_val.real
     PC = PC.real
     neig_val = -eig_val
@@ -238,34 +141,6 @@ def kernel_regularized_least_squares(KernelMatrix, LabelsMatrix):
     print(f'iterations = {itr_count}, regularization = {lambda_}, N = {N}.')
     return B
 
-def Autoencoder(y_data, subspace_dim):
-    # Reduce the dimensionality of y_data
-    AE = {}
-    AE['y_data_n_subspace'], AE['PC'] = dimReduce_slow(y_data, subspace_dim)
-    
-    # Ensure subspace has a significant spread
-    while np.min(np.max(AE['y_data_n_subspace'], axis=1) - np.min(AE['y_data_n_subspace'], axis=1)) < 1e-3:
-        subspace_dim -= 1
-        #print(f"shape before dim reduce: {np.shape(AE['y_data_n_subspace'])}")
-        AE['y_data_n_subspace'], AE['PC'] = dimReduce_slow(y_data, subspace_dim)
-        #print(f"reduced subspace dim = {subspace_dim}. and to shape: {np.shape(AE['y_data_n_subspace'])}")
-
-    # Compute weights matrix
-    weights_matrix = np.linalg.inv(np.cov(AE['y_data_n_subspace']))
-    
-    AE['kerneltype'] = 'Gaussian'
-    Kxx = KxxMatrix(AE['y_data_n_subspace'], weights_matrix, AE['kerneltype'])
-    
-    # Perform kernel regularized least squares
-    AE['B'] = kernel_regularized_least_squares(Kxx, y_data)
-    
-    AE['y_data'] = y_data
-    AE['sqrt_weights_matrix'] = sqrtm(weights_matrix)
-    
-    _, distance = AutoencoderFiltering(y_data, AE)
-    AE['modeling_error'] = 1 - np.exp(-(1 / y_data.shape[0]) * np.max(distance))
-    
-    return AE
 
 def AutoencoderFiltering(y_data_new, AE):
     x_data = np.dot(AE['PC'].T, y_data_new)  # Project y_data_new onto AE's principal components
@@ -297,6 +172,165 @@ def AutoencoderFiltering(y_data_new, AE):
     
     return hat_y_data, distance
 
+
+def Autoencoder(y_data, subspace_dim):
+    # Reduce the dimensionality of y_data
+    AE = {}
+    AE['y_data_n_subspace'], AE['PC'] = dimReduce_slow(y_data, subspace_dim)
+    
+    # Ensure subspace has a significant spread
+    while np.min(np.max(AE['y_data_n_subspace'], axis=1) - np.min(AE['y_data_n_subspace'], axis=1)) < 1e-3:
+        subspace_dim -= 1
+        #print(f"shape before dim reduce: {np.shape(AE['y_data_n_subspace'])}")
+        AE['y_data_n_subspace'], AE['PC'] = dimReduce_slow(y_data, subspace_dim)
+        #print(f"reduced subspace dim = {subspace_dim}. and to shape: {np.shape(AE['y_data_n_subspace'])}")
+
+    # Compute weights matrix
+    weights_matrix = np.linalg.inv(np.cov(AE['y_data_n_subspace']))
+    
+    AE['kerneltype'] = 'Gaussian'
+    Kxx = KxxMatrix(AE['y_data_n_subspace'], weights_matrix, AE['kerneltype'])
+    
+    # Perform kernel regularized least squares
+    AE['B'] = kernel_regularized_least_squares(Kxx, y_data)
+    
+    AE['y_data'] = y_data
+    AE['sqrt_weights_matrix'] = sqrtm(weights_matrix)
+    
+    _, distance = AutoencoderFiltering(y_data, AE)
+    AE['modeling_error'] = 1 - np.exp(-(1 / y_data.shape[0]) * np.max(distance))
+    
+    return AE
+def parallelAutoencoders(y_data, subspace_dim, Nb):
+    """
+    Train multiple autoencoders sequentially on clustered subsets of the input data.
+    
+    Parameters:
+    - y_data (numpy.ndarray): The input data.
+    - subspace_dim (int): The subspace dimension for the autoencoder.
+    - Nb (int): A parameter to determine the number of clusters (subsets).
+    
+    Returns:
+    - AE_arr (list): A list containing trained autoencoders.
+    """
+    AE_arr = []
+    N = y_data.shape[1]  # Number of samples
+    S = round(N / Nb)  # Determine number of clusters
+
+    if S > 1:
+        cluster_labels = k_means_clustering(y_data.T, S)
+        labels_indices_less = []
+
+        # Find clusters with fewer than 2 samples and filter out
+        for i in range(S):
+            ind = np.where(cluster_labels == i)[0]
+            if len(ind) < 2:
+                labels_indices_less.append(i)
+        
+        while labels_indices_less:
+            S -= 1
+            cluster_labels = k_means_clustering(y_data.T, S)
+            labels_indices_less = []
+
+            for i in range(S):
+                ind = np.where(cluster_labels == i)[0]
+                if len(ind) < 30:
+                    labels_indices_less.append(i)
+        
+        # Sequential training of autoencoders
+        for i in range(S):
+            # Extract data for the current cluster
+            cluster_data = y_data[ :,cluster_labels == i]
+            # Train autoencoder on the cluster data
+            AE = Autoencoder(cluster_data, subspace_dim)
+            # Append the trained autoencoder to the list
+            AE_arr.append(AE)
+
+    else:
+        # Train a single autoencoder if only one cluster is needed
+        AE = Autoencoder(y_data, subspace_dim)
+        AE_arr.append(AE)
+    
+    return AE_arr
+
+def Classifier(y_data, label_data, subspace_dim, Nb):
+    """
+    Build a classifier using autoencoders for each class of the input data.
+
+    Parameters:
+    - y_data (numpy.ndarray): The input data (features).
+    - label_data (numpy.ndarray): The labels corresponding to the input data.
+    - subspace_dim (int): The subspace dimension for the autoencoders.
+    - Nb (int): Parameter determining the number of clusters/subsets.
+
+    Returns:
+    - CLF (dict): A dictionary representing the classifier containing:
+      - 'labels': Unique labels of the input data.
+      - 'AE_arr_arr': List of lists, where each sublist contains autoencoders trained on a specific class.
+      - 'max_modeling_error': Maximum modeling error encountered across all autoencoders.
+    """
+    CLF = {}
+    CLF['labels'] = np.unique(label_data)
+    C = len(CLF['labels'])
+    CLF['AE_arr_arr'] = [None] * C
+    max_modeling_error = 0
+
+    for i in range(C):
+        label = CLF['labels'][i]
+        print(f'Building an autoencoder for class = {label}...')
+        
+        # Extract data for the current class
+        class_data = y_data[:, label_data == label]
+        # Train autoencoders for the current class
+        CLF['AE_arr_arr'][i] = parallelAutoencoders(class_data, subspace_dim, Nb)
+        
+        # Determine the maximum modeling error for the autoencoders
+        for ae in CLF['AE_arr_arr'][i]:
+            max_modeling_error = max(max_modeling_error, ae['modeling_error'])
+        
+        print(f'maximum modeling error for class {label} = {max_modeling_error}.')
+
+    CLF['max_modeling_error'] = max_modeling_error
+    print(f'overall maximum modeling error = {max_modeling_error}.')
+
+    return CLF
+
+
+
+
+
+
+
+def combineMultipleAutoencoders(y_data_new, AE_arr):
+    """
+    Combine multiple autoencoders to compute the distance of new data points to the closest autoencoder model.
+
+    Parameters:
+    - y_data_new (numpy.ndarray): New data points to be evaluated.
+    - AE_arr (list): A list of autoencoder models.
+
+    Returns:
+    - distance (numpy.ndarray): Array containing the minimum distance of each data point to any of the autoencoder models.
+    """
+    N = y_data_new.shape[1]  # Number of data points
+    Q = len(AE_arr)  # Number of autoencoders
+    distance_matrix = np.zeros((Q, N))  # Initialize a distance matrix
+
+    # Compute the distance of each data point to each autoencoder
+    for i in range(Q):
+        _, distances = AutoencoderFiltering(y_data_new, AE_arr[i])
+        distance_matrix[i, :] = distances
+
+    # Find the minimum distance across all autoencoders for each data point
+    distance_min = np.min(distance_matrix, axis=0)
+    distance = np.full((1, N), np.inf)  # Initialize the distance array with infinity
+
+    # Assign the minimum distances to the distance array
+    for i in range(Q):
+        ind = np.where(distance_matrix[i, :] == distance_min)
+        distance[0, ind] = distance_matrix[i, ind]
+
+    return distance
 
 
 def predictionClassifier(y_data_new, CLF):
@@ -332,36 +366,7 @@ def predictionClassifier(y_data_new, CLF):
 
 
 
-def combineMultipleAutoencoders(y_data_new, AE_arr):
-    """
-    Combine multiple autoencoders to compute the distance of new data points to the closest autoencoder model.
 
-    Parameters:
-    - y_data_new (numpy.ndarray): New data points to be evaluated.
-    - AE_arr (list): A list of autoencoder models.
-
-    Returns:
-    - distance (numpy.ndarray): Array containing the minimum distance of each data point to any of the autoencoder models.
-    """
-    N = y_data_new.shape[1]  # Number of data points
-    Q = len(AE_arr)  # Number of autoencoders
-    distance_matrix = np.zeros((Q, N))  # Initialize a distance matrix
-
-    # Compute the distance of each data point to each autoencoder
-    for i in range(Q):
-        _, distances = AutoencoderFiltering(y_data_new, AE_arr[i])
-        distance_matrix[i, :] = distances
-
-    # Find the minimum distance across all autoencoders for each data point
-    distance_min = np.min(distance_matrix, axis=0)
-    distance = np.full((1, N), np.inf)  # Initialize the distance array with infinity
-
-    # Assign the minimum distances to the distance array
-    for i in range(Q):
-        ind = np.where(distance_matrix[i, :] == distance_min)
-        distance[0, ind] = distance_matrix[i, ind]
-
-    return distance
 
 
 
