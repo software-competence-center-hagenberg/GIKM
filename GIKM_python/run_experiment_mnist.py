@@ -1,8 +1,5 @@
 import time
 import numpy as np
-from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
-from sklearn.metrics.pairwise import pairwise_distances
 import os
 import scipy
 import pandas as pd

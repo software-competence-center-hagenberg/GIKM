@@ -9,7 +9,7 @@ def divide_data_into_non_iid_label_screw(labels_trn, n_clients, n_classes_per_cl
     labels = np.unique(labels_trn)
     C = len(labels)
     n_groups_per_class_arr = np.zeros(C, dtype=int)
-    
+
     # Ensure that no class has zero groups assigned
     while np.sum(n_groups_per_class_arr == 0) > 0:
         tM = np.random.randint(min(labels), max(labels) + 1, (n_classes_per_client, n_clients))
@@ -89,10 +89,6 @@ def dimReduce_slow(y_data,n):
 
 
 def KxxMatrix(x_matrix, weights_matrix, kerneltype):
-    # x_matrix is n x N
-    #x_matrix = x_matrix.T
-    # weights_matrix is n x 1
-
     if kerneltype.lower() == 'gaussian':
         n, N = x_matrix.shape
         Kxx = np.zeros((N, N))
@@ -181,9 +177,9 @@ def Autoencoder(y_data, subspace_dim):
     # Ensure subspace has a significant spread
     while np.min(np.max(AE['y_data_n_subspace'], axis=1) - np.min(AE['y_data_n_subspace'], axis=1)) < 1e-3:
         subspace_dim -= 1
-        #print(f"shape before dim reduce: {np.shape(AE['y_data_n_subspace'])}")
+        
         AE['y_data_n_subspace'], AE['PC'] = dimReduce_slow(y_data, subspace_dim)
-        #print(f"reduced subspace dim = {subspace_dim}. and to shape: {np.shape(AE['y_data_n_subspace'])}")
+        
 
     # Compute weights matrix
     weights_matrix = np.linalg.inv(np.cov(AE['y_data_n_subspace']))

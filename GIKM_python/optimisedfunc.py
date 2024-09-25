@@ -81,19 +81,6 @@ def dimReduce(y_data, n):
     y_data_n_subspace = np.dot(PC.T, y_data)
     return y_data_n_subspace, PC
 
-# def KxxMatrix(x_matrix, weights_matrix, kerneltype):
-#     if kerneltype.lower() == 'gaussian':
-#         n, N = x_matrix.shape
-        
-#         # Compute pairwise squared distances with weights applied
-#         # x_matrix.T * weights_matrix * x_matrix efficiently
-#         Wx = np.dot(weights_matrix, x_matrix)
-#         sq_dists = np.sum(Wx**2, axis=0).reshape(1, N) - 2 * np.dot(x_matrix.T, Wx) + np.sum(Wx**2, axis=0).reshape(N, 1)
-        
-#         # Apply Gaussian kernel
-#         Kxx = np.exp(-(0.5 / n) * sq_dists)
-    
-#     return Kxx
 
 def KxxMatrix(x_matrix, weights_matrix, kerneltype):
     if kerneltype.lower() == 'gaussian':

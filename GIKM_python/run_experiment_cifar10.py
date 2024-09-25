@@ -1,11 +1,12 @@
 import os
-import glob
 import numpy as np
 import scipy.io
 from tensorflow.keras.preprocessing import image_dataset_from_directory
 from sklearn.preprocessing import LabelEncoder
 from func import divide_data_into_non_iid_label_screw, Classifier, predictionClassifier
 import pandas as pd
+
+
 def run_experiments_cifar10():
     # Set the random seed
     np.random.seed(4232)
