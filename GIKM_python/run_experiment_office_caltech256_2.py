@@ -1,4 +1,4 @@
-from func_office_altech import get_data
+from GIKM_python.func_office_caltech import get_data
 from func import Classifier, predictionClassifier, combineMultipleClassifiers
 import numpy as np
 from sklearn.svm import SVC
