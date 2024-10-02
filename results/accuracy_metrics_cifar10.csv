@@ -1,0 +1,5 @@
+Metric,Value
+Mean Local Accuracy (20%),0.9776216666666665
+STD Local Accuracy (20%),0.0021443193688337253
+Mean Global Accuracy (20%),0.9626233333333335
+STD Global Accuracy (20%),0.0032743201160274397

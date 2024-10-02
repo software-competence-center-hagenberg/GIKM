@@ -41,7 +41,10 @@ for k = 1:n_experiments
     local_acc_arr = zeros(1,n_clients);
     distance_matrix = zeros(numel(labels),size(y_data_test,2))+inf;
     for j = 1:n_clients
-        [CLF] = Classifier(y_data_trn(:,client_id_trn==j),labels_trn(:,client_id_trn==j),20,1000);
+        test = client_id_trn==j;
+        sub_data = y_data_trn(:,test);
+        sub_labels = labels_trn(:,client_id_trn==j);
+        [CLF] = Classifier(sub_data,sub_labels,20,1000);
         classes_client = unique(labels_trn(:,client_id_trn==j));
         test_data_ind = [];
         for i = 1:numel(classes_client)
