@@ -25,6 +25,10 @@ Install all necessary packages to the virtual environment with `pip install -r r
 - ``GIKM_python``: Notebooks and python files utilizing python packages to perform GIKM in python.
 - ``results``: consisting of .csv files with the performances of the python implementation to compare with the paper.
 
+## Datasets
+The datasets will be handed over via a downloadable [One-Drive link](https://scchat-my.sharepoint.com/:u:/g/personal/mathias_brucker_scch_at/EQ5OngnVP5JLl71EOElKw2cBQOjivmgBrFasD0XtyQc1XQ?e=nxVGXz) of a .zip. This then needs to be extracted within the GIKM root folder, so the folder structure is GIKM/Datasets on the same level as GIKM/GIKM and GIKM/_python.
+
+
 ## File description about GIKM_python
 For the GIKM_python there are files preset as ``.py`` and as ``.ipynb``. All the files provded starting with the prefix "run" are the python equivalents to the matlab files from the paper. The general functions needed for the implementation are in the ``func.py``. In the folder there is another file with the name ``optimisedfunc.py``. The ``optimisedfunc.py`` is utilizing a more time efficient implementation of the functions sacrificing accuracy seen in ``run_experiment_mnist_optmised.py``. This file should not be used yet since it is just in early stage experimenting with different timesaving variants. The files dealing with the **office+caltech** use-case are also not ready to be comparted and executed in the python version. The following files are implemented properly in python with the results being there as well:
 - ``run_experiment_cifar10.py``
