@@ -26,7 +26,7 @@ Install all necessary packages to the virtual environment with `pip install -r r
 - ``results``: consisting of .csv files with the performances of the python implementation to compare with the paper.
 
 ## Datasets
-The datasets will be handed over via a downloadable [One-Drive link](https://scchat-my.sharepoint.com/:u:/g/personal/mathias_brucker_scch_at/EQ5OngnVP5JLl71EOElKw2cBQOjivmgBrFasD0XtyQc1XQ?e=nxVGXz) of a .zip. This then needs to be extracted within the GIKM root folder, so the folder structure is GIKM/Datasets on the same level as GIKM/GIKM and GIKM/_python.
+The datasets will be handed over via a downloadable [One-Drive link](https://scchat-my.sharepoint.com/:u:/g/personal/mathias_brucker_scch_at/EQ5OngnVP5JLl71EOElKw2cBQOjivmgBrFasD0XtyQc1XQ?e=nxVGXz) of a .zip. This then needs to be extracted within the GIKM root folder, so the folder structure is GIKM/Datasets on the same level as GIKM/GIKM and GIKM/GIKM_python.
 
 
 ## File description about GIKM_python

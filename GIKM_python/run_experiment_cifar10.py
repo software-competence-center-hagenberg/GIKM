@@ -81,7 +81,7 @@ def run_experiments_cifar10():
             y_data_test_client = y_data_test[:, test_data_ind]
             labels_test_client = labels_test[test_data_ind]
 
-            distance_arr, labels_predicted = predictionClassifier(y_data_test_client, clf)
+            distance_arr, labels_predicted = predictionClassifier(y_data_test_client, clf) # TODO: get distance arr for clustering, inverse distance e to power minus distance / scaled with image size
             local_acc_arr[j] = np.mean(labels_predicted == labels_test_client)
 
             for i, test_ind in enumerate(test_data_ind):
